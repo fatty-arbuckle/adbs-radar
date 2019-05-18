@@ -19,7 +19,7 @@ defmodule Aircraft.Hanger do
     {
       :ok,
       %{
-        aircraft: [],
+        aircraft: %{},
         center: [0.0, 0.0],
         extents: [[90.0, -90.0], [90.0, -90.0]]
       }
@@ -31,62 +31,100 @@ defmodule Aircraft.Hanger do
   end
 
 
-
   def handle_info(
-    {:update, %{icoa: icoa, latitude: latitude, longitude: longitude}},
-    %{aircraft: aircraft, center: _center, extents: [[min_lat, max_lat], [min_long, max_long]] } = state
-  ) when latitude != nil and longitude != nil do
+    {:update, incoming},
+    %{aircraft: aircraft, center: center, extents: [[min_lat, max_lat], [min_long, max_long]] } = state
+  ) do
+    updated_aircraft = update_aircraft(aircraft, incoming)
+    {updated_center, updated_extents} = update_extents(
+      incoming,
+      center,
+      [[min_lat, max_lat], [min_long, max_long]]
+    )
 
-    # filter out icoa if we already have it
-    filtered_list = Enum.filter(aircraft, fn bird ->
-      bird.icoa != icoa
-    end)
+    updated_aircraft = Enum.reduce(
+      updated_aircraft, %{},
+      fn {key, bird}, acc ->
+        if bird.latitude != nil and bird.longitude != nil do
+          Map.put(
+            acc,
+            key,
+            Map.merge(bird, %{
+              bearing: Geocalc.bearing(center, [bird.latitude, bird.longitude]),
+              distance: Geocalc.distance_between(center, [bird.latitude, bird.longitude])
+            })
+          )
+        else
+          acc
+        end
+      end
+    )
 
-    # extend extents
-    min_lat = if(latitude < min_lat, do: latitude, else: min_lat)
-    max_lat = if(latitude > max_lat, do: latitude, else: max_lat)
-    min_long = if(longitude < min_long, do: longitude, else: min_long)
-    max_long = if(longitude > max_long, do: longitude, else: max_long)
-
-    # calculate the center
-    center = Geocalc.geographic_center([[min_lat, min_long], [max_lat, max_long]])
-
-    removal_threshold = DateTime.to_unix(DateTime.utc_now) - 5*60
-
-    # update bearing and distance
-    updated_aircraft = Enum.map(
-      filtered_list ++ [%{
-        icoa: icoa,
-        latitude: latitude,
-        longitude: longitude,
-        last_seen: DateTime.to_unix(DateTime.utc_now)
-      }], fn bird ->
-        %{
-          icoa: bird.icoa,
-          latitude: bird.latitude,
-          longitude: bird.longitude,
-          bearing: Geocalc.bearing(center, [bird.latitude, bird.longitude]),
-          # distance is in meters
-          distance: Geocalc.distance_between(center, [bird.latitude, bird.longitude]),
-          last_seen: bird.last_seen
-        }
-    end)
-
-    Enum.filter(updated_aircraft, fn bird ->
-      bird.last_seen > removal_threshold
-    end)
+    # TODO
+    # removal_threshold = DateTime.to_unix(DateTime.utc_now) - 5*60
+    #   Enum.filter(updated_aircraft, fn bird ->
+    #     bird.last_seen > removal_threshold
+    #   end)
 
     # current aircraft information to the state
     state = %{ state |
       aircraft: updated_aircraft,
-      extents: [[min_lat, max_lat], [min_long, max_long]],
-      center: center
+      extents: updated_extents,
+      center: updated_center
     }
 
     { :noreply, state }
   end
+
   def handle_info({:update, %{icoa: _icoa, latitude: nil, longitude: nil}}, state) do
     { :noreply, state }
   end
+
+  defp update_aircraft(aircraft, incoming) do
+    # find the aircraft
+    current_bird = Map.get(aircraft, incoming.icoa, %{icoa: incoming.icoa, latitude: nil, longitude: nil, callsign: nil, heading: nil})
+
+    # update what isn't nil
+    current_bird = update_bird(current_bird, incoming, :latitude)
+    current_bird = update_bird(current_bird, incoming, :longitude)
+    current_bird = update_bird(current_bird, incoming, :callsign)
+    current_bird = update_bird(current_bird, incoming, :heading)
+    current_bird = Map.put(current_bird, :last_seen, DateTime.to_unix(DateTime.utc_now))
+
+    # put the current bird back in the hanger
+    Map.put(aircraft, incoming.icoa, current_bird)
+  end
+
+  # current_bird, incoming, :latitude
+  defp update_bird(current, incoming, key) do
+    case Map.has_key?(incoming, key) do
+      true ->
+        {:ok, value} = Map.fetch(incoming, key)
+        case value do
+          nil ->
+            current
+          v   ->
+            Map.put(current, key, v)
+        end
+      false ->
+        current
+    end
+  end
+
+  defp update_extents(incoming, center, [[min_lat, max_lat], [min_long, max_long]]) do
+    if Map.has_key?(incoming, :latitude) and incoming.latitude != nil and
+        Map.has_key?(incoming, :longitude) and incoming.longitude != nil do
+      min_lat = if(incoming.latitude < min_lat, do: incoming.latitude, else: min_lat)
+      max_lat = if(incoming.latitude > max_lat, do: incoming.latitude, else: max_lat)
+      min_long = if(incoming.longitude < min_long, do: incoming.longitude, else: min_long)
+      max_long = if(incoming.longitude > max_long, do: incoming.longitude, else: max_long)
+      center = Geocalc.geographic_center([[min_lat, min_long], [max_lat, max_long]])
+      {center, [[min_lat, max_lat], [min_long, max_long]]}
+    else
+      {center, [[min_lat, max_lat], [min_long, max_long]]}
+    end
+  end
+
+
 
 end

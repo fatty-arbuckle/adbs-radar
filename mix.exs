@@ -8,7 +8,8 @@ defmodule AdsbRadar.MixProject do
       elixir: "~> 1.7",
       build_embedded: true,
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      aliases: aliases()
     ]
   end
 
@@ -30,4 +31,11 @@ defmodule AdsbRadar.MixProject do
       {:dump_1090_client, git: "https://github.com/fatty-arbuckle/dump-1090-client.git"}
     ]
   end
+
+  defp aliases do
+    [
+      test: "test --no-start"
+    ]
+  end
+
 end

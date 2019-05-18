@@ -60,9 +60,6 @@ defmodule AdsbRadar.Scene.Radar do
     {:ok, state, push: graph}
   end
 
-
-
-
   defp draw_target(graph, {cx, cy}, size) do
     stroke_width = 2
     tick_length = 8
@@ -145,21 +142,26 @@ defmodule AdsbRadar.Scene.Radar do
   defp draw_object(graph, :aircraft, _frame, %{center: {cx, cy}, size: size}) do
 
     idle_threshold = DateTime.to_unix(DateTime.utc_now) - 15
-    hanger_data = Aircraft.Hanger.info
-    if Enum.count(hanger_data.aircraft) > 0 do
-      furtherest_bird = Enum.max_by(hanger_data.aircraft, fn bird -> bird.distance end)
+    hanger_data =
+      Map.values(Aircraft.Hanger.info().aircraft)
+      |> Enum.filter(fn bird ->
+        bird.latitude != nil and bird.longitude != nil
+      end)
+    if Enum.count(hanger_data) > 0 do
+      furtherest_bird = Enum.max_by(hanger_data, fn bird -> bird.distance end)
       scale = furtherest_bird.distance / 240
 
       graph = graph
       |> text(Float.to_string(Float.round(scale*size/1000, 1)) <> " km", font: :roboto, font_size: 12, translate: {cx + 8 + size, cy} )
 
-      Enum.reduce(hanger_data.aircraft, graph, fn bird, graph ->
+      Enum.reduce(hanger_data, graph, fn bird, graph ->
         stroke = if(bird.last_seen < idle_threshold, do: {1, :gray}, else: {3, :lime})
         x = (bird.distance/scale) * :math.cos(bird.bearing) + cx
         y = (bird.distance/scale) * :math.sin(bird.bearing) + cy
+        label = if(bird.callsign != nil, do: bird.callsign, else: bird.icoa)
         graph
         |> circle( 5, stroke: stroke, translate: {x, y} )
-        |> text( bird.icoa, font: :roboto, font_size: 16, translate: {x + 8, y - 3} )
+        |> text( label, font: :roboto, font_size: 16, translate: {x + 8, y - 3} )
           # 5, fill: {:lime, alpha_from_frame(150, frame, aircraft.found_frame)}, translate: {x, y} )
       end)
     else
