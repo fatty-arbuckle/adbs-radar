@@ -149,13 +149,23 @@ defmodule AdsbRadar.Scene.Radar do
       end)
     if Enum.count(hanger_data) > 0 do
       furtherest_bird = Enum.max_by(hanger_data, fn bird -> bird.distance end)
-      scale = furtherest_bird.distance / 240
+      maxRange = fit_distance(furtherest_bird.distance)
+
+      # TODO pass in size to get this number
+      scale = maxRange / 390.0
+
+      # IO.inspect(furtherest_bird.distance, label: "furtherest_bird")
+      # IO.inspect(maxRange, label: "maxRange")
+      # IO.inspect(scale, label: "scale")
+      # IO.inspect({cx, cy}, label: "center")
+
 
       graph = graph
-      |> text(Float.to_string(Float.round(scale*size/1000, 1)) <> " km", font: :roboto, font_size: 12, translate: {cx + 8 + size, cy} )
+      |> text(Float.to_string(maxRange/1_000) <> " km", font: :roboto, font_size: 12, translate: {cx + 8 + size, cy} )
 
       Enum.reduce(hanger_data, graph, fn bird, graph ->
         stroke = if(bird.last_seen < idle_threshold, do: {1, :gray}, else: {3, :lime})
+        # IO.inspect(bird, label: "BIRD")
         x = (bird.distance/scale) * :math.cos(bird.bearing) + cx
         y = (bird.distance/scale) * :math.sin(bird.bearing) + cy
         label = if(bird.callsign != nil, do: bird.callsign, else: bird.icoa)
@@ -204,4 +214,19 @@ defmodule AdsbRadar.Scene.Radar do
     put_in(state, [:objects, :sweep, :arc_location], rem((sweep.arc_location + sweep.speed), 360))
   end
 
+  # defp fit_distance(f) when f <  10_000.0, do:  10_000.0
+  defp fit_distance(f) when f <  25_000.0, do:  25_000.0
+  # defp fit_distance(f) when f <  30_000.0, do:  30_000.0
+  # defp fit_distance(f) when f <  40_000.0, do:  40_000.0
+  defp fit_distance(f) when f <  50_000.0, do:  50_000.0
+  # defp fit_distance(f) when f <  60_000.0, do:  60_000.0
+  defp fit_distance(f) when f <  75_000.0, do:  75_000.0
+  # defp fit_distance(f) when f <  80_000.0, do:  80_000.0
+  # defp fit_distance(f) when f <  90_000.0, do:  90_000.0
+  defp fit_distance(f) when f < 100_000.0, do: 100_000.0
+  defp fit_distance(f) when f < 200_000.0, do: 200_000.0
+  defp fit_distance(f) when f < 300_000.0, do: 300_000.0
+  defp fit_distance(f) when f < 400_000.0, do: 400_000.0
+  defp fit_distance(f) when f < 500_000.0, do: 500_000.0
+  defp fit_distance(f), do: f
 end
