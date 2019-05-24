@@ -1,5 +1,9 @@
 use Mix.Config
 
+config :dump_1090_client,
+  address: "192.168.1.233",
+  port: 30003
+
 config :adsb_radar, :viewport, %{
   name: :main_viewport,
   default_scene: {AdsbRadar.Scene.Radar, nil},
