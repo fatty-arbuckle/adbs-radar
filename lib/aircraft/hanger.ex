@@ -82,13 +82,22 @@ defmodule Aircraft.Hanger do
 
   defp update_aircraft(aircraft, incoming) do
     # find the aircraft
-    current_bird = Map.get(aircraft, incoming.icoa, %{icoa: incoming.icoa, latitude: nil, longitude: nil, callsign: nil, heading: nil})
+    current_bird = Map.get(aircraft, incoming.icoa, %{
+      icoa: incoming.icoa,
+      latitude: nil,
+      longitude: nil,
+      callsign: nil,
+      heading: nil,
+      speed: nil,
+      path: []
+    })
 
     # update what isn't nil
     current_bird = update_bird(current_bird, incoming, :latitude)
     current_bird = update_bird(current_bird, incoming, :longitude)
     current_bird = update_bird(current_bird, incoming, :callsign)
     current_bird = update_bird(current_bird, incoming, :heading)
+    current_bird = update_bird(current_bird, incoming, :speed)
     current_bird = Map.put(current_bird, :last_seen, DateTime.to_unix(DateTime.utc_now))
 
     # put the current bird back in the hanger

@@ -168,15 +168,31 @@ defmodule AdsbRadar.Scene.Radar do
         # IO.inspect(bird, label: "BIRD")
         x = (bird.distance/scale) * :math.cos(bird.bearing) + cx
         y = (bird.distance/scale) * :math.sin(bird.bearing) + cy
+
         label = if(bird.callsign != nil, do: bird.callsign, else: bird.icoa)
         graph
         |> circle( 5, stroke: stroke, translate: {x, y} )
         |> text( label, font: :roboto, font_size: 16, translate: {x + 8, y - 3} )
           # 5, fill: {:lime, alpha_from_frame(150, frame, aircraft.found_frame)}, translate: {x, y} )
+        |> draw_heading(bird.heading, bird.speed, x, y, stroke)
       end)
     else
       graph
     end
+  end
+
+  defp draw_heading(graph, heading, _speed, _x, _y, _stroke) when heading == nil, do: graph
+  defp draw_heading(graph, heading, speed, x, y, stroke) do
+    speed = if speed == nil, do: 5, else: speed
+    radians = Geocalc.degrees_to_radians(heading)
+    heading_length = -5
+    heading_xs = heading_length * :math.cos(radians) + x
+    heading_ys = heading_length * :math.sin(radians) + y
+    heading_length = (-40 * (speed / 1000)) - 5
+    heading_xe = heading_length * :math.cos(radians) + x
+    heading_ye = heading_length * :math.sin(radians) + y
+    graph
+    |> line({{heading_xs, heading_ys}, {heading_xe, heading_ye}}, stroke: stroke )
   end
 
   defp draw_sector(graph, center, size, start, finish, alpha) do
