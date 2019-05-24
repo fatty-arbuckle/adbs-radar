@@ -1,18 +1,35 @@
-defmodule AdsbRadar do
-  @moduledoc """
-  Starter application using the Scenic framework.
-  """
+defmodule AdsbRadar.Application do
+  # See https://hexdocs.pm/elixir/Application.html
+  # for more information on OTP Applications
+  @moduledoc false
+
+  @target Mix.Project.config()[:target]
+
+  use Application
 
   def start(_type, _args) do
-    # load the viewport configuration from config
+    # See https://hexdocs.pm/elixir/Supervisor.html
+    # for other strategies and supported options
+    opts = [strategy: :one_for_one, name: SnTest.Supervisor]
+    Supervisor.start_link([
+        {Aircraft.Hanger, []}
+      ] ++ children(@target), opts)
+  end
+
+  # List all child processes to be supervised
+  def children("host") do
     main_viewport_config = Application.get_env(:adsb_radar, :viewport)
 
-    # start the application with the viewport
-    children = [
-      {Aircraft.Hanger, []},
+    [
       {Scenic, viewports: [main_viewport_config]}
     ]
+  end
 
-    Supervisor.start_link(children, strategy: :one_for_one)
+  def children(_target) do
+    main_viewport_config = Application.get_env(:adsb_radar, :viewport)
+
+    [
+      {Scenic, viewports: [main_viewport_config]}
+    ]
   end
 end

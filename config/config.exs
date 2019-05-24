@@ -2,24 +2,19 @@
 # and its dependencies with the aid of the Mix.Config module.
 use Mix.Config
 
-# Configure the main viewport for the Scenic application
-config :adsb_radar, :viewport, %{
-  name: :main_viewport,
-  size: {1024, 780},
-  default_scene: {AdsbRadar.Scene.Radar, nil},
-  drivers: [
-    %{
-      module: Scenic.Driver.Glfw,
-      name: :glfw,
-      opts: [resizeable: false, title: "adsb_radar"]
-    }
-  ]
-}
+# Customize non-Elixir parts of the firmware.  See
+# https://hexdocs.pm/nerves/advanced-configuration.html for details.
+config :nerves, :firmware, rootfs_overlay: "rootfs_overlay"
 
-# It is also possible to import configuration files, relative to this
-# directory. For example, you can emulate configuration per environment
-# by uncommenting the line below and defining dev.exs, test.exs and such.
-# Configuration from the imported file will override the ones defined
-# here (which is why it is important to import them last).
-#
-#     import_config "prod.exs"
+# Use shoehorn to start the main application. See the shoehorn
+# docs for separating out critical OTP applications such as those
+# involved with firmware updates.
+config :shoehorn,
+  init: [:nerves_runtime],
+  app: Mix.Project.config()[:app]
+
+# Import target specific config. This must remain at the bottom
+# of this file so it overrides the configuration defined above.
+# Uncomment to use target specific configurations
+
+import_config "config.#{Mix.Project.config()[:target]}.exs"
