@@ -184,7 +184,7 @@ defmodule AdsbRadar.Scene.Radar do
   defp draw_heading(graph, heading, _speed, _x, _y, _stroke) when heading == nil, do: graph
   defp draw_heading(graph, heading, speed, x, y, stroke) do
     speed = if speed == nil, do: 5, else: speed
-    radians = Geocalc.degrees_to_radians(heading)
+    radians = Geocalc.degrees_to_radians(rem((heading + 180), 360))
     heading_length = -5
     heading_xs = heading_length * :math.cos(radians) + x
     heading_ys = heading_length * :math.sin(radians) + y
@@ -230,15 +230,9 @@ defmodule AdsbRadar.Scene.Radar do
     put_in(state, [:objects, :sweep, :arc_location], rem((sweep.arc_location + sweep.speed), 360))
   end
 
-  # defp fit_distance(f) when f <  10_000.0, do:  10_000.0
   defp fit_distance(f) when f <  25_000.0, do:  25_000.0
-  # defp fit_distance(f) when f <  30_000.0, do:  30_000.0
-  # defp fit_distance(f) when f <  40_000.0, do:  40_000.0
   defp fit_distance(f) when f <  50_000.0, do:  50_000.0
-  # defp fit_distance(f) when f <  60_000.0, do:  60_000.0
   defp fit_distance(f) when f <  75_000.0, do:  75_000.0
-  # defp fit_distance(f) when f <  80_000.0, do:  80_000.0
-  # defp fit_distance(f) when f <  90_000.0, do:  90_000.0
   defp fit_distance(f) when f < 100_000.0, do: 100_000.0
   defp fit_distance(f) when f < 200_000.0, do: 200_000.0
   defp fit_distance(f) when f < 300_000.0, do: 300_000.0
