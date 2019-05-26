@@ -50,8 +50,8 @@ defmodule Aircraft.Hanger do
             acc,
             key,
             Map.merge(bird, %{
-              bearing: Geocalc.bearing(center, [bird.latitude, bird.longitude]),
-              distance: Geocalc.distance_between(center, [bird.latitude, bird.longitude])
+              bearing: Geocalc.bearing(updated_center, [bird.latitude, bird.longitude]),
+              distance: Geocalc.distance_between(updated_center, [bird.latitude, bird.longitude])
             })
           )
         else
@@ -91,6 +91,13 @@ defmodule Aircraft.Hanger do
       speed: nil,
       path: []
     })
+
+    current_bird = if current_bird.latitude != nil and current_bird.longitude != nil do
+      Map.put(current_bird, :path,
+        [[current_bird.latitude, current_bird.longitude]] ++ current_bird.path)
+    else
+      current_bird
+    end
 
     # update what isn't nil
     current_bird = update_bird(current_bird, incoming, :latitude)

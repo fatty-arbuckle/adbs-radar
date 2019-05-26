@@ -4,7 +4,10 @@ defmodule AdsbRadar.Scene.Radar do
   alias Scenic.ViewPort
   import Scenic.Primitives, only: [circle: 3, line: 3, sector: 3, text: 3]
 
-  @target_color :gray
+  @target_color :slate_gray
+  @active :lime
+  @dead :dark_gray
+
 
   @frame_ms 26
 
@@ -66,7 +69,7 @@ defmodule AdsbRadar.Scene.Radar do
     length = size - stroke_width
 
     graph
-    |> circle(length, stroke: {stroke_width, :gray}, translate: {cx, cy})
+    |> circle(length, stroke: {stroke_width, @target_color}, translate: {cx, cy})
     |> circle(trunc(length * 0.75), stroke: {stroke_width, @target_color}, translate: {cx, cy})
     |> circle(trunc(length * 0.50), stroke: {stroke_width, @target_color}, translate: {cx, cy})
     |> circle(trunc(length * 0.25), stroke: {stroke_width, @target_color}, translate: {cx, cy})
@@ -122,13 +125,13 @@ defmodule AdsbRadar.Scene.Radar do
         )
       end
     )
-    |> line({center, {size*:math.cos(degreesToRadians(arc_location)) + elem(center, 0), size*:math.sin(degreesToRadians(arc_location)) + elem(center, 1)}}, stroke: {3, :lime})
+    |> line({center, {size*:math.cos(degreesToRadians(arc_location)) + elem(center, 0), size*:math.sin(degreesToRadians(arc_location)) + elem(center, 1)}}, stroke: {3, @active})
   end
 
   defp draw_object(graph, :indicator, _frame, %{center: {cx, cy}}) do
     color = case Dump1090Client.status do
-      %{address: _address, connected: true} -> %{stroke: :lime, fill: :green}
-      _                                     -> %{stroke: :gray, fill: :red}
+      %{address: _address, connected: true} -> %{stroke: @active, fill: :green}
+      _                                     -> %{stroke: @target_color, fill: :red}
     end
     tx = 2 * cx - 25
     ty = 2 * cy - 25
@@ -141,9 +144,11 @@ defmodule AdsbRadar.Scene.Radar do
 
   defp draw_object(graph, :aircraft, _frame, %{center: {cx, cy}, size: size}) do
 
+    hangerInfo = Aircraft.Hanger.info()
+
     idle_threshold = DateTime.to_unix(DateTime.utc_now) - 15
     hanger_data =
-      Map.values(Aircraft.Hanger.info().aircraft)
+      Map.values(hangerInfo.aircraft)
       |> Enum.filter(fn bird ->
         bird.latitude != nil and bird.longitude != nil
       end)
@@ -164,7 +169,7 @@ defmodule AdsbRadar.Scene.Radar do
       |> text(Float.to_string(maxRange/1_000) <> " km", font: :roboto, font_size: 12, translate: {cx + 8 + size, cy} )
 
       Enum.reduce(hanger_data, graph, fn bird, graph ->
-        stroke = if(bird.last_seen < idle_threshold, do: {1, :gray}, else: {3, :lime})
+        stroke = if(bird.last_seen < idle_threshold, do: {1, @dead}, else: {3, @active})
         # IO.inspect(bird, label: "BIRD")
         x = (bird.distance/scale) * :math.cos(bird.bearing) + cx
         y = (bird.distance/scale) * :math.sin(bird.bearing) + cy
@@ -175,6 +180,7 @@ defmodule AdsbRadar.Scene.Radar do
         |> text( label, font: :roboto, font_size: 16, translate: {x + 8, y - 3} )
           # 5, fill: {:lime, alpha_from_frame(150, frame, aircraft.found_frame)}, translate: {x, y} )
         |> draw_heading(bird.heading, bird.speed, x, y, stroke)
+        |> draw_path(hangerInfo.center, scale, [cx, cy], [x,y], bird.path)
       end)
     else
       graph
@@ -195,12 +201,27 @@ defmodule AdsbRadar.Scene.Radar do
     |> line({{heading_xs, heading_ys}, {heading_xe, heading_ye}}, stroke: stroke )
   end
 
+  defp draw_path(graph, center, scale, [cx, cy], [x, y], [ location | remaining]) do
+
+    bearing = Geocalc.bearing(center, location)
+    distance = Geocalc.distance_between(center, location)
+    nx = (distance/scale) * :math.cos(bearing) + cx
+    ny = (distance/scale) * :math.sin(bearing) + cy
+    graph
+    |> line({{x, y}, {nx, ny}}, stroke: {1, :dim_gray})
+    |> draw_path(center, scale, [cx, cy], [nx, ny], remaining)
+  end
+  defp draw_path(graph, _, _, _, _, []) do
+    graph
+  end
+
+
   defp draw_sector(graph, center, size, start, finish, alpha) do
     graph
     |> sector(
       {size, degreesToRadians(start), degreesToRadians(finish)},
       [
-        fill: {:lime, alpha},
+        fill: {@active, alpha},
         translate: center
       ]
     )
