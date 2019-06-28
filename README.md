@@ -5,5 +5,5 @@ MIX_TARGET=host iex -S mix scenic.run
 
 # Running on RPI3
 
-MIX_TARGET=rpi3 mix deps.get
-MIX_TARGET=rpi3 mix firmware.burn
+MIX_TARGET=adsb_nerves_rpi3 mix deps.get
+MIX_TARGET=adsb_nerves_rpi3 mix firmware.burn
