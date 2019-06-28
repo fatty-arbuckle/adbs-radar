@@ -10,10 +10,13 @@ defmodule AdsbRadar.Application do
   def start(_type, _args) do
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
+    Dump1090Client.start_listener
     opts = [strategy: :one_for_one, name: SnTest.Supervisor]
-    Supervisor.start_link([
+    result = Supervisor.start_link([
+        {Aircraft.Dump1090Runner, []},
         {Aircraft.Hanger, []}
       ] ++ children(@target), opts)
+    result
   end
 
   # List all child processes to be supervised

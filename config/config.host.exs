@@ -1,7 +1,8 @@
 use Mix.Config
 
 config :dump_1090_client,
-  address: "192.168.1.233",
+  # address: "192.168.1.233",
+  address: "localhost",
   port: 30003
 
 config :adsb_radar, :viewport, %{

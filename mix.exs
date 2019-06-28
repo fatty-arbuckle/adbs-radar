@@ -64,6 +64,7 @@ defmodule AdsbRadar.MixProject do
     ] ++ system(target)
   end
 
+  defp system("adsb_nerves_rpi3"), do: [{:adsb_nerves_rpi3, path: "../adsb-nerves-rpi3", runtime: false, targets: :adsb_nerves_rpi3}]
   defp system("rpi"), do: [{:nerves_system_rpi, "~> 1.7", runtime: false}]
   defp system("rpi0"), do: [{:nerves_system_rpi0, "~> 1.7", runtime: false}]
   defp system("rpi2"), do: [{:nerves_system_rpi2, "~> 1.7", runtime: false}]
