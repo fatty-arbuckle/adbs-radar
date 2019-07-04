@@ -8,7 +8,7 @@ config :dump_1090_client,
 config :adsb_radar, :viewport, %{
   name: :main_viewport,
   default_scene: {AdsbRadar.Scene.Radar, nil},
-  size: {1024, 780},
+  size: {1000, 600},
   opts: [scale: 1.0],
   drivers: [
     %{
