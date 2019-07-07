@@ -1,6 +1,8 @@
 defmodule Aircraft.Hanger do
   use GenServer
 
+  @purge_interval 600
+
   # Client
 
   def start_link(data) when is_list(data) do
@@ -42,21 +44,12 @@ defmodule Aircraft.Hanger do
       [[min_lat, max_lat], [min_long, max_long]]
     )
 
+
+    now = DateTime.to_unix(DateTime.utc_now)
     updated_aircraft = Enum.reduce(
       updated_aircraft, %{},
       fn {key, bird}, acc ->
-        if bird.latitude != nil and bird.longitude != nil do
-          Map.put(
-            acc,
-            key,
-            Map.merge(bird, %{
-              bearing: Geocalc.bearing(updated_center, [bird.latitude, bird.longitude]),
-              distance: Geocalc.distance_between(updated_center, [bird.latitude, bird.longitude])
-            })
-          )
-        else
-          acc
-        end
+        acc |> put_bird({key, bird}, updated_center, now)
       end
     )
 
@@ -80,6 +73,24 @@ defmodule Aircraft.Hanger do
     { :noreply, state }
   end
 
+  defp put_bird(acc, {_, %{latitude: nil, longitude: _}}, _, _), do: acc
+  defp put_bird(acc, {_, %{latitude: _, longitude: nil}}, _, _), do: acc
+  defp put_bird(acc, {_, %{last_seen: last_seen}}, _, now) when (now - last_seen) > @purge_interval, do: acc
+  defp put_bird(acc, {key, %{latitude: latitude, longitude: longitude} = bird}, updated_center, _) do
+    if latitude != nil and longitude != nil do
+      Map.put(
+        acc,
+        key,
+        Map.merge(bird, %{
+          bearing: Geocalc.bearing(updated_center, [bird.latitude, bird.longitude]),
+          distance: Geocalc.distance_between(updated_center, [bird.latitude, bird.longitude])
+        })
+      )
+    else
+      acc
+    end
+  end
+
   defp update_aircraft(aircraft, incoming) do
     # find the aircraft
     current_bird = Map.get(aircraft, incoming.icoa, %{
@@ -89,6 +100,7 @@ defmodule Aircraft.Hanger do
       callsign: nil,
       heading: nil,
       speed: nil,
+      altitude: nil,
       path: []
     })
 
@@ -105,6 +117,7 @@ defmodule Aircraft.Hanger do
     current_bird = update_bird(current_bird, incoming, :callsign)
     current_bird = update_bird(current_bird, incoming, :heading)
     current_bird = update_bird(current_bird, incoming, :speed)
+    current_bird = update_bird(current_bird, incoming, :altitude)
     current_bird = Map.put(current_bird, :last_seen, DateTime.to_unix(DateTime.utc_now))
 
     # put the current bird back in the hanger
