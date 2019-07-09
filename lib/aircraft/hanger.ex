@@ -82,7 +82,7 @@ defmodule Aircraft.Hanger do
         acc,
         key,
         Map.merge(bird, %{
-          bearing: Geocalc.bearing(updated_center, [bird.latitude, bird.longitude]),
+          bearing: Geocalc.bearing(updated_center, [bird.latitude, bird.longitude]) - (:math.pi / 2),
           distance: Geocalc.distance_between(updated_center, [bird.latitude, bird.longitude])
         })
       )

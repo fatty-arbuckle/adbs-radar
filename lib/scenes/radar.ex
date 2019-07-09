@@ -70,7 +70,7 @@ defmodule AdsbRadar.Scene.Radar do
           center: radar_center,
           size: size - padding,
         },
-        indicator: %{
+        connection_indicator: %{
           center: radar_center,
           size: size - padding,
         },
@@ -131,7 +131,7 @@ defmodule AdsbRadar.Scene.Radar do
     |> line({center, {size*:math.cos(degreesToRadians(arc_location)) + elem(center, 0), size*:math.sin(degreesToRadians(arc_location)) + elem(center, 1)}}, stroke: {3, @active})
   end
 
-  defp draw_object(graph, :indicator, _frame, %{center: {cx, cy}, size: size}) do
+  defp draw_object(graph, :connection_indicator, _frame, %{center: {cx, cy}, size: size}) do
     color = case Dump1090Client.status do
       %{address: _address, connected: true} -> %{stroke: @active, fill: :green}
       _                                     -> %{stroke: @target_color, fill: :red}
@@ -259,7 +259,7 @@ defmodule AdsbRadar.Scene.Radar do
   defp draw_heading(graph, heading, _speed, _x, _y, _stroke) when heading == nil, do: graph
   defp draw_heading(graph, heading, speed, x, y, stroke) do
     speed = if speed == nil, do: 5, else: speed
-    radians = Geocalc.degrees_to_radians(rem((heading + 180), 360))
+    radians = Geocalc.degrees_to_radians(rem((heading + 90), 360))
     heading_length = -5
     heading_xs = heading_length * :math.cos(radians) + x
     heading_ys = heading_length * :math.sin(radians) + y
@@ -272,7 +272,7 @@ defmodule AdsbRadar.Scene.Radar do
 
   defp draw_path(graph, center, scale, [cx, cy], [x, y], [ location | remaining], path_stroke) do
 
-    bearing = Geocalc.bearing(center, location)
+    bearing = Geocalc.bearing(center, location) - (:math.pi / 2)
     distance = Geocalc.distance_between(center, location)
     nx = (distance/scale) * :math.cos(bearing) + cx
     ny = (distance/scale) * :math.sin(bearing) + cy
@@ -335,6 +335,9 @@ defmodule AdsbRadar.Scene.Radar do
       _             -> @active
     end
   end
+
+  # TODO make better use of space in 1920x1080 mode
+  #   - bigger font?
 
   defp fit_distance(f) when f <  25_000.0, do:  25_000.0
   defp fit_distance(f) when f <  50_000.0, do:  50_000.0

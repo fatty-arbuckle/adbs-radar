@@ -47,4 +47,16 @@ defmodule HangerTest do
     assert bird.heading == @heading
   end
 
+  test "bearings" do
+    IO.inspect(Geocalc.bearing([10.0, 10.0], [15.0, 10.0]), label: "NORTH")
+    IO.inspect(Geocalc.bearing([10.0, 10.0], [10.0, 15.0]), label: "EAST")
+    IO.inspect(Geocalc.bearing([10.0, 10.0], [ 5.0, 10.0]), label: "SOUTH")
+    IO.inspect(Geocalc.bearing([10.0, 10.0], [10.0,  5.0]), label: "WEST")
+    IO.inspect(Aircraft.Hanger.get_bearing([10.0, 10.0], [15.0, 10.0]), label: "NORTH")
+    IO.inspect(Aircraft.Hanger.get_bearing([10.0, 10.0], [10.0, 15.0]), label: "EAST")
+    IO.inspect(Aircraft.Hanger.get_bearing([10.0, 10.0], [ 5.0, 10.0]), label: "SOUTH")
+    IO.inspect(Aircraft.Hanger.get_bearing([10.0, 10.0], [10.0,  5.0]), label: "WEST")
+    assert 0.0 == Geocalc.bearing([10.0, 10.0], [15.0, 10.0])
+  end
+
 end
