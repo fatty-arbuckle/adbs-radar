@@ -16,6 +16,9 @@ defmodule AdsbRadar.Scene.Radar do
     {0x3c, 0x3c, 0x3b},
     {0x30, 0x30, 0x2f}
   ]
+  @font_size_label 12
+  @font_size_info 24
+  @font_size_radar 16
 
   # convert these to settings passed in
   @sweeper false
@@ -100,7 +103,7 @@ defmodule AdsbRadar.Scene.Radar do
 
   defp draw_object(graph, :target, _frame, %{center: {cx, cy}, size: size}) do
     stroke_width = 1
-    tick_length = 5
+    tick_length = 6
     length = (size - stroke_width)
 
     graph
@@ -165,7 +168,7 @@ defmodule AdsbRadar.Scene.Radar do
     scale = maxRange / 390.0
 
     graph = graph
-    |> text(Float.to_string(maxRange/1_000) <> " km", font: :roboto, font_size: 12, translate: {cx + 8 - size, cy - 8} )
+    |> text(Float.to_string(maxRange/1_000) <> " km", font: :roboto, font_size: @font_size_label, translate: {cx + 8 - size, cy - 8} )
 
     Enum.reduce(hanger_data, graph, fn bird, graph ->
       x = (bird.distance/scale) * :math.cos(bird.bearing) + cx
@@ -183,10 +186,10 @@ defmodule AdsbRadar.Scene.Radar do
 
   defp draw_bird(graph, bird, center, scale, {cx, cy}, {x, y}, fill_color) do
     graph
-    |> circle( 5, stroke: {1, fill_color}, translate: {x, y} )
-    |> text(label_string(bird.callsign, bird.icoa), font: :roboto, font_size: 16, fill: fill_color, translate: {x + 8, y - 3} )
-    |> draw_heading(bird.heading, bird.speed, x, y, {1, fill_color})
-    |> draw_path(center, scale, [cx, cy], [x,y], bird.path, {1, Tuple.append(fill_color, 0x50)})
+    |> circle( 5, stroke: {4, fill_color}, translate: {x, y} )
+    |> text(label_string(bird.callsign, bird.icoa), font: :roboto, font_size: @font_size_radar, fill: fill_color, translate: {x + 8, y - 3} )
+    |> draw_heading(bird.heading, bird.speed, x, y, {4, fill_color})
+    |> draw_path(center, scale, [cx, cy], [x,y], bird.path, {3, Tuple.append(fill_color, 0x50)})
   end
 
   defp draw_info_box(graph, {_origin, _size}, hanger_data) do
@@ -223,11 +226,12 @@ defmodule AdsbRadar.Scene.Radar do
   defp altitude_string(altitude), do: "alt: #{altitude} ft"
 
   defp draw_info_row(graph, offset, label, heading, speed, altitude, fill_color) do
+    row_height = 30
     graph
-    |> text( label, font: :roboto, fill: fill_color, font_size: 16, translate: {10, (20 * offset) + 20} )
-    |> text( heading, font: :roboto, fill: fill_color, font_size: 16, translate: {80, (20 * offset) + 20} )
-    |> text( speed, font: :roboto, fill: fill_color, font_size: 16, translate: {170, (20 * offset) + 20} )
-    |> text( altitude, font: :roboto, fill: fill_color, font_size: 16, translate: {280, (20 * offset) + 20} )
+    |> text( label, font: :roboto, fill: fill_color, font_size: @font_size_info,    translate: { 25, (row_height * offset) + row_height} )
+    |> text( heading, font: :roboto, fill: fill_color, font_size: @font_size_info,  translate: {120, (row_height * offset) + row_height} )
+    |> text( speed, font: :roboto, fill: fill_color, font_size: @font_size_info,    translate: {280, (row_height * offset) + row_height} )
+    |> text( altitude, font: :roboto, fill: fill_color, font_size: @font_size_info, translate: {460, (row_height * offset) + row_height} )
   end
 
 
@@ -335,9 +339,6 @@ defmodule AdsbRadar.Scene.Radar do
       _             -> @active
     end
   end
-
-  # TODO make better use of space in 1920x1080 mode
-  #   - bigger font?
 
   defp fit_distance(f) when f <  25_000.0, do:  25_000.0
   defp fit_distance(f) when f <  50_000.0, do:  50_000.0
