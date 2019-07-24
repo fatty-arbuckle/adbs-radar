@@ -7,14 +7,14 @@ defmodule AdsbRadar.Scene.Radar do
   @target_color :dim_grey
   @active {0x7C, 0xFC, 0x00}
   @death_scale [
+    {0xd5, 0xd5, 0xd4},
+    {0xcc, 0xcc, 0xcb},
     {0xbb, 0xbb, 0xb9},
+    {0xa8, 0xa8, 0xa8},
     {0x9c, 0x9c, 0x9c},
     {0x7b, 0x7b, 0x7a},
     {0x64, 0x64, 0x63},
-    {0x5c, 0x5c, 0x5b},
-    {0x4c, 0x4c, 0x4b},
-    {0x3c, 0x3c, 0x3b},
-    {0x30, 0x30, 0x2f}
+    {0x5c, 0x5c, 0x5b}
   ]
   @font_size_label 12
   @font_size_info 24
@@ -203,7 +203,8 @@ defmodule AdsbRadar.Scene.Radar do
           graph
         fill_color ->
           graph |> draw_info_row(i,
-            label_string(bird.callsign, bird.icoa),
+            # label_string(bird.callsign, bird.icoa),
+            bird,
             heading_string(bird.heading),
             speed_string(bird.speed),
             altitude_string(bird.altitude),
@@ -225,14 +226,44 @@ defmodule AdsbRadar.Scene.Radar do
   defp altitude_string(nil), do: "alt: ???°"
   defp altitude_string(altitude), do: "alt: #{altitude} ft"
 
-  defp draw_info_row(graph, offset, label, heading, speed, altitude, fill_color) do
+  defp last_seen_string(nil), do: "???"
+  defp last_seen_string(last_seen) do
+    now = DateTime.to_unix(DateTime.utc_now)
+    case now - last_seen do
+      x when x > 300 -> ">  5 min"
+      x when x >  60 -> ">  1 min"
+      x when x >  30 -> "> 30 sec"
+      x when x >  10 -> "> 10 sec"
+      _              -> ""
+    end
+  end
+
+
+  defp draw_info_row(graph, offset, bird, heading, speed, altitude, fill_color) do
     row_height = 30
     graph
-    |> text( label, font: :roboto, fill: fill_color, font_size: @font_size_info,    translate: { 25, (row_height * offset) + row_height} )
-    |> text( heading, font: :roboto, fill: fill_color, font_size: @font_size_info,  translate: {120, (row_height * offset) + row_height} )
+    |> draw_info_row_label({bird.callsign, bird.icoa}, offset, row_height, fill_color)
+    |> text( heading, font: :roboto, fill: fill_color, font_size: @font_size_info,  translate: {130, (row_height * offset) + row_height} )
     |> text( speed, font: :roboto, fill: fill_color, font_size: @font_size_info,    translate: {280, (row_height * offset) + row_height} )
     |> text( altitude, font: :roboto, fill: fill_color, font_size: @font_size_info, translate: {460, (row_height * offset) + row_height} )
+    |> text( last_seen_string(bird.last_seen), font: :roboto, fill: fill_color, font_size: (@font_size_info - 6), translate: {590, (row_height * offset) + row_height} )
   end
+
+  defp draw_info_row_label(graph, {nil, icoa}, offset, row_height, fill_color) do
+    graph
+    |> draw_info_row_label_helper(icoa, offset, row_height, Tuple.append(fill_color, 0xa0))
+  end
+
+  defp draw_info_row_label(graph, {callsign, _}, offset, row_height, fill_color) do
+    graph
+    |> draw_info_row_label_helper(callsign, offset, row_height, fill_color)
+  end
+
+  defp draw_info_row_label_helper(graph, label, offset, row_height, fill_color) do
+    graph
+    |> text(label, font: :roboto, fill: fill_color, font_size: @font_size_info,    translate: { 25, (row_height * offset) + row_height} )
+  end
+
 
 
   defp draw_target_lines(graph, cx, cy, length, stroke_width, tick_length) do
